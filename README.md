@@ -66,3 +66,10 @@ Original repository code is subject to [LICENSE.md](LICENSE.md), **not** a gener
 ## Transport specification
 
 [API protocol and threat boundaries](docs/API_PROTOCOL.md) define the recorded-only transport, bounded request, approval signatures and response codes. The HTTP adapter rejects ambiguous duplicate authorization headers, transfer-encoding ambiguity and non-JSON requests.
+
+
+---
+
+### Canonical founder and public project identity
+
+This public repository is listed in the [founder-maintained IMPERIAL Core engineering portfolio](https://oromaskevic23-cmd.github.io/oromaskevic23-cmd/projects/). The public [engineering source registry](https://oromaskevic23-cmd.github.io/Capital-Core-Public/reference/projects/) links this source to the account's published project records under **Alexander Nikolaevich Romaskevich (RomaskevicH)**, Founder, Owner and CEO of IMPERIAL Core and its final architectural decision authority. Repository-specific governance, contributor rights, third-party intellectual property, and documented independence of individual projects remain unchanged. Publication does not prove production execution, market adoption or Google indexing.
