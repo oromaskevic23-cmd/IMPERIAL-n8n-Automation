@@ -1,0 +1,20 @@
+name: n8n Automation CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  local-intake-and-workflows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Python runtime
+        run: python3 --version
+      - name: Compile pure Python
+        run: python3 -m compileall -q src tests tools
+      - name: Replay, authorization and audit unit tests
+        run: PYTHONPATH=src python3 -m unittest discover -s tests -v
+      - name: Validate n8n export documents
+        run: python3 tools/validate_workflows.py

@@ -1,0 +1,49 @@
+{
+  "name": "IMPERIAL Core | HANTER Simulation Dry Run (No External Effects)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b59b80c2-a300-4bb1-b7e5-b1a8e32475b0",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{ json: { project: 'IMPERIAL Core', origin: 'HANTER', orchestrator: 'ASTRA', agent_id: 'NCA-424', task_id: 'SIM-DEMO-001', action: 'simulate:task', state: 'DRY_RUN_ONLY', executed: false, note: 'Illustrative data; no API request, no agent execution, no funds movement.' } }];"
+      },
+      "id": "e70821a5-9203-4b42-85f3-1d0e97c9ad4c",
+      "name": "Prepare Simulation Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Simulation Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}
