@@ -57,7 +57,8 @@ class Gateway:
                    for o in allowed_orchestrators)):
             raise ValueError("invalid federated allowlist")
         self.allowed_orchestrators = allowed_orchestrators
-        with self._db() as db:
+        db = self._db()
+        try:
             db.executescript("""CREATE TABLE IF NOT EXISTS nonces(
                nonce TEXT PRIMARY KEY, seen_at INTEGER NOT NULL
             );
@@ -74,6 +75,8 @@ class Gateway:
                event_json TEXT NOT NULL,
                hash TEXT NOT NULL UNIQUE
             );""")
+        finally:
+            db.close()
 
     def _db(self) -> sqlite3.Connection:
         db = sqlite3.connect(self.db_path, timeout=10, isolation_level=None)

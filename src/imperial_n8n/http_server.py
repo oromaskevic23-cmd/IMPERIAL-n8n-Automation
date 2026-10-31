@@ -38,6 +38,14 @@ def serve() -> None:
         def do_POST(self):
             if self.path != "/v1/intake":
                 return self._respond(404, {"error": "not_found"})
+            # Reject ambiguous duplicate headers and transfer framing.
+            required = ("Content-Length", "X-IC-Timestamp", "X-IC-Nonce", "X-IC-Signature")
+            if any(len(self.headers.get_all(name, [])) != 1 for name in required):
+                return self._respond(400, {"error": "ambiguous_or_missing_headers"})
+            if self.headers.get("Transfer-Encoding"):
+                return self._respond(400, {"error": "unsupported_transfer_encoding"})
+            if self.headers.get_content_type() != "application/json":
+                return self._respond(415, {"error": "unsupported_content_type"})
             try:
                 length = int(self.headers.get("Content-Length", "0"))
             except ValueError:

@@ -62,3 +62,7 @@ The related [IMPERIAL Plugins](https://github.com/oromaskevic23-cmd/IMPERIAL-Plu
 ## Licensing and boundaries
 
 Original repository code is subject to [LICENSE.md](LICENSE.md), **not** a general open-source grant. n8n is a third-party product; the sample workflows use documented n8n node formats without bundling n8n source, icons or trademarks. The public repo must not contain production keys or private data. See [SECURITY.md](SECURITY.md).
+
+## Transport specification
+
+[API protocol and threat boundaries](docs/API_PROTOCOL.md) define the recorded-only transport, bounded request, approval signatures and response codes. The HTTP adapter rejects ambiguous duplicate authorization headers, transfer-encoding ambiguity and non-JSON requests.
