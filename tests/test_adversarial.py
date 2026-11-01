@@ -125,8 +125,9 @@ class AdversarialTests(unittest.TestCase):
         self.assertEqual(restarted.accept(raw, h, now=NOW)[0], 409)
 
     def test_empty_allowlist_denies(self):
-        deny_all = Gateway(self.dbpath, K, A, set())
-        self.assertEqual(deny_all.accept(*envelope(request()), now=NOW)[0], 403)
+        # Fail at configuration time, before the gateway can accept requests.
+        with self.assertRaisesRegex(ValueError, "invalid federated allowlist"):
+            Gateway(self.dbpath, K, A, set())
 
 
 if __name__ == "__main__":
