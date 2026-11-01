@@ -10,6 +10,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - name: Python runtime
         run: python3 --version
       - name: Compile pure Python
@@ -18,3 +20,36 @@ jobs:
         run: PYTHONPATH=src python3 -m unittest discover -s tests -v
       - name: Validate n8n export documents
         run: python3 tools/validate_workflows.py
+  pinned-federated-cross-repository-integration:
+    name: Skill x Plugins x n8n - deny-by-default handoff
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout n8n gateway without persisted token
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Checkout exact reviewed IMPERIAL Plugins revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: oromaskevic23-cmd/IMPERIAL-Plugins
+          ref: 2b94a884e0f426abf958d9d1943b6768267df469
+          path: pinned-plugins
+          persist-credentials: false
+      - name: Checkout exact reviewed IMPERIAL Skill revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: oromaskevic23-cmd/IMPERIAL-Skill
+          ref: 5dc7c55b5422142bdba3f943515a9d51e5c1c8a1
+          path: pinned-skill
+          persist-credentials: false
+      - name: Select Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Compile all integrated real source modules
+        run: python3 -m compileall -q src tests integration pinned-plugins/src/imperial_plugins pinned-skill/src/imperial_skill
+      - name: Run source integration and cross-boundary negative cases
+        run: PYTHONPATH=src:pinned-plugins/src:pinned-skill/src:integration python3 -m unittest discover -s integration -p 'test_*.py' -v
