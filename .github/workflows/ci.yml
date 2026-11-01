@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: oromaskevic23-cmd/IMPERIAL-Plugins
-          ref: 2b94a884e0f426abf958d9d1943b6768267df469
+          ref: 53061cf199449849e9723eb738fb714acee79c98
           path: pinned-plugins
           persist-credentials: false
       - name: Checkout exact reviewed IMPERIAL Skill revision
