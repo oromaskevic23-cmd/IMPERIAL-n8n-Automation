@@ -26,6 +26,20 @@ def canonical(payload: dict) -> bytes:
                       separators=(",", ":"), allow_nan=False).encode("utf-8")
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict:
+    """Reject ambiguous JSON in both the envelope and nested approval."""
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("DUPLICATE_JSON_KEY")
+        result[key] = value
+    return result
+
+
+def _reject_nonfinite_constant(value: str) -> None:
+    raise ValueError("NON_FINITE_JSON_NUMBER")
+
+
 def sign_transport(secret: bytes, timestamp: str, nonce: str, raw_body: bytes) -> str:
     if len(secret) < 32:
         raise ValueError("secret too short")
@@ -52,7 +66,7 @@ class Gateway:
         self.db_path = str(db_path)
         self.transport_secret = transport_secret
         self.approval_secret = approval_secret
-        if (not isinstance(allowed_orchestrators, set)
+        if (not isinstance(allowed_orchestrators, set) or not allowed_orchestrators
             or any(not isinstance(o, str) or not ID_PATTERN.fullmatch(o)
                    for o in allowed_orchestrators)):
             raise ValueError("invalid federated allowlist")
@@ -110,8 +124,12 @@ class Gateway:
         if not hmac.compare_digest(expected, signature):
             return self._out(401, "SIGNATURE_INVALID")
         try:
-            payload = json.loads(raw_body.decode("utf-8"))
-        except (UnicodeError, ValueError):
+            payload = json.loads(
+                raw_body.decode("utf-8"),
+                object_pairs_hook=_reject_duplicate_keys,
+                parse_constant=_reject_nonfinite_constant,
+            )
+        except (UnicodeError, ValueError, RecursionError):
             return self._out(400, "JSON_INVALID")
         if not isinstance(payload, dict) or set(payload) != {
             "origin", "task_id", "orchestrator", "agent_id", "action", "approval"
