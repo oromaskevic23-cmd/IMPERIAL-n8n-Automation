@@ -90,6 +90,21 @@ class LockContentionTests(unittest.TestCase):
         self.assertEqual((code, result["state"]), (423, "OWNER_KILL_SWITCH_ENGAGED"))
         self.assert_not_recorded()
 
+    def test_valid_request_after_lock_wait_is_recorded_once(self):
+        with patch("imperial_n8n.gateway.time.time", return_value=NOW):
+            code, result = self.contended_accept(*self.envelope(), lambda: None)
+        self.assertEqual((code, result["state"]), (202, "RECORDED_ONLY_NO_EXECUTOR"))
+        with sqlite3.connect(self.path) as db:
+            for table in ("nonces", "tasks", "audit"):
+                self.assertEqual(db.execute(f"SELECT count(*) FROM {table}").fetchone()[0], 1)
+
+    def test_invalid_replacement_key_fails_closed(self):
+        with patch("imperial_n8n.gateway.time.time", return_value=NOW):
+            code, result = self.contended_accept(
+                *self.envelope(), lambda: setattr(self.gate, "approval_secret", b"short"))
+        self.assertEqual((code, result["state"]), (503, "AUTH_CONFIGURATION_INVALID"))
+        self.assert_not_recorded()
+
     def test_approval_expired_during_lock_wait_is_denied(self):
         current = [NOW]
         with patch("imperial_n8n.gateway.time.time", side_effect=lambda: current[0]):
@@ -112,6 +127,27 @@ class LockContentionTests(unittest.TestCase):
             code, result = self.contended_accept(
                 *self.envelope(), lambda: current.__setitem__(0, NOW - 1))
         self.assertEqual((code, result["state"]), (401, "CLOCK_MOVED_BACKWARDS"))
+        self.assert_not_recorded()
+
+    def test_orchestrator_revoked_during_lock_wait_is_denied(self):
+        with patch("imperial_n8n.gateway.time.time", return_value=NOW):
+            code, result = self.contended_accept(
+                *self.envelope(), lambda: setattr(self.gate, "allowed_orchestrators", frozenset()))
+        self.assertEqual((code, result["state"]), (403, "ORCHESTRATOR_NOT_ALLOWED"))
+        self.assert_not_recorded()
+
+    def test_rotated_transport_key_during_lock_wait_is_denied(self):
+        with patch("imperial_n8n.gateway.time.time", return_value=NOW):
+            code, result = self.contended_accept(
+                *self.envelope(), lambda: setattr(self.gate, "transport_secret", b"R" * 32))
+        self.assertEqual((code, result["state"]), (401, "SIGNATURE_INVALID"))
+        self.assert_not_recorded()
+
+    def test_rotated_approval_key_during_lock_wait_is_denied(self):
+        with patch("imperial_n8n.gateway.time.time", return_value=NOW):
+            code, result = self.contended_accept(
+                *self.envelope(), lambda: setattr(self.gate, "approval_secret", b"R" * 32))
+        self.assertEqual((code, result["state"]), (403, "APPROVAL_INVALID"))
         self.assert_not_recorded()
 
     def test_frozen_clock_does_not_extend_approval(self):

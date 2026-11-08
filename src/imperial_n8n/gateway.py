@@ -72,7 +72,7 @@ class Gateway:
             or any(not isinstance(o, str) or not ID_PATTERN.fullmatch(o)
                    for o in allowed_orchestrators)):
             raise ValueError("invalid federated allowlist")
-        self.allowed_orchestrators = allowed_orchestrators
+        self.allowed_orchestrators = frozenset(allowed_orchestrators)
         db = self._db()
         try:
             db.executescript("""CREATE TABLE IF NOT EXISTS nonces(
@@ -183,6 +183,25 @@ class Gateway:
                     db.rollback()
                     return self._out(401, "TIMESTAMP_INVALID")
                 if not locked_now < expiry <= locked_now + MAX_SKEW or elapsed >= expiry - first_wall:
+                    db.rollback()
+                    return self._out(403, "APPROVAL_INVALID")
+                # A trusted operator may have replaced configuration while the
+                # request was waiting; never record under the old authority.
+                transport_key, approval_key = self.transport_secret, self.approval_secret
+                routes = self.allowed_orchestrators
+                if (not isinstance(transport_key, bytes) or len(transport_key) < 32
+                    or not isinstance(approval_key, bytes) or len(approval_key) < 32
+                    or hmac.compare_digest(transport_key, approval_key)
+                    or not isinstance(routes, (set, frozenset))):
+                    db.rollback()
+                    return self._out(503, "AUTH_CONFIGURATION_INVALID")
+                if payload["orchestrator"] not in routes:
+                    db.rollback()
+                    return self._out(403, "ORCHESTRATOR_NOT_ALLOWED")
+                if not hmac.compare_digest(sign_transport(transport_key, timestamp, nonce, raw_body), signature):
+                    db.rollback()
+                    return self._out(401, "SIGNATURE_INVALID")
+                if not hmac.compare_digest(approve_request(approval_key, payload, expiry), signed):
                     db.rollback()
                     return self._out(403, "APPROVAL_INVALID")
                 now = locked_now

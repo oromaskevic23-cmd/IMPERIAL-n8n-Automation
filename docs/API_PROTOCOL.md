@@ -32,13 +32,17 @@ The gateway checks timestamp freshness (±5 minutes) and approval expiry (within
 5 minutes), then rechecks both after acquiring the SQLite write lock. It also
 denies wall-clock rollback and uses elapsed monotonic time to prevent a frozen
 clock from extending the request's lifetime. The environment-based local stop
-setting is checked again after the lock. Nonce and task uniqueness are committed
-in the same transaction as the audit record.
+setting, the route allowlist and both signatures are checked again after the
+lock. Nonce and task uniqueness are committed in the same transaction as the
+audit record.
 
 These checks do not turn the environment variable into an authenticated remote
 kill switch: changing a parent shell's environment cannot update an already
 running process, and there is no transactional remote stop or worker termination
-in this prototype.
+in this prototype. The prototype has no supported live key-rotation or route
+revocation API; direct changes to in-process variables and the environment are
+not serialized with an in-flight commit. Production revocation and stop require
+an authenticated, transactionally coordinated policy control plane.
 
 ## Results
 
