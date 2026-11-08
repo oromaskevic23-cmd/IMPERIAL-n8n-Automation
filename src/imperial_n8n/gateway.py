@@ -1,5 +1,7 @@
 """Local HANTER ingress: fail-closed, replay-safe, recorded-only.
 
+Copyright (c) 2026 Alexander Nikolaevich Romaskevich (RomaskevicH).
+
 No remote workers, no LLM dispatch, no payment execution, no credential store.
 HMAC is a single trust-domain prototype, not Ed25519 identity or AI Passport.
 """
@@ -113,7 +115,12 @@ class Gateway:
         timestamp, nonce, signature = (h.get("x-ic-timestamp", ""),
                                         h.get("x-ic-nonce", ""),
                                         h.get("x-ic-signature", ""))
-        now = int(time.time()) if now is None else int(now)
+        # Explicit ``now`` is for deterministic offline tests. The HTTP server
+        # uses the real clock and always rechecks after acquiring the DB lock.
+        supplied_now = now
+        started = time.monotonic()
+        first_wall = time.time() if supplied_now is None else supplied_now
+        now = int(first_wall)
         if not (timestamp.isascii() and timestamp.isdigit() and len(timestamp) <= 15
                 and NONCE_PATTERN.fullmatch(nonce)
                 and isinstance(signature, str) and re.fullmatch(r"[0-9a-f]{64}", signature)):
@@ -160,6 +167,26 @@ class Gateway:
             db = self._db()
             try:
                 db.execute("BEGIN IMMEDIATE")
+                # The database can remain locked after transport and approval
+                # validation. Revalidate before recording any nonce or task.
+                locked_wall = time.time() if supplied_now is None else supplied_now
+                locked_now = int(locked_wall)
+                elapsed = time.monotonic() - started
+                if os.getenv("IMPERIAL_OWNER_KILL_SWITCH", "1") != "0":
+                    db.rollback()
+                    return self._out(423, "OWNER_KILL_SWITCH_ENGAGED")
+                if locked_wall < first_wall:
+                    db.rollback()
+                    return self._out(401, "CLOCK_MOVED_BACKWARDS")
+                if (abs(locked_now - int(timestamp)) > MAX_SKEW or
+                        elapsed > int(timestamp) + MAX_SKEW - first_wall):
+                    db.rollback()
+                    return self._out(401, "TIMESTAMP_INVALID")
+                if not locked_now < expiry <= locked_now + MAX_SKEW or elapsed >= expiry - first_wall:
+                    db.rollback()
+                    return self._out(403, "APPROVAL_INVALID")
+                now = locked_now
+                event["at"] = now
                 # Unique nonce and task ID are committed together. Crash => rollback.
                 db.execute("INSERT INTO nonces(nonce,seen_at) VALUES(?,?)", (nonce, now))
                 db.execute("""INSERT INTO tasks(task_id,orchestrator,agent_id,state,received_at)

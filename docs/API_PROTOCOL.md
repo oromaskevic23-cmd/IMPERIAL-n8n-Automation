@@ -28,13 +28,23 @@ Required headers: `X-IC-Timestamp` Unix seconds, `X-IC-Nonce` 16–96 ASCII URL-
 
 The **approval** HMAC uses an entirely separate Owner Approval Gateway key over a canonical object containing `task_id`, `orchestrator`, `agent_id`, `action` and `expires_at`, prefixed `approval:v1:`. Both keys must remain private and independently provisioned. HMAC does not prove asymmetric owner identity or non-repudiation.
 
-The system checks timestamp freshness (±5 minutes), approval expiry (within 5 minutes), nonce uniqueness and task uniqueness transactionally.
+The gateway checks timestamp freshness (±5 minutes) and approval expiry (within
+5 minutes), then rechecks both after acquiring the SQLite write lock. It also
+denies wall-clock rollback and uses elapsed monotonic time to prevent a frozen
+clock from extending the request's lifetime. The environment-based local stop
+setting is checked again after the lock. Nonce and task uniqueness are committed
+in the same transaction as the audit record.
+
+These checks do not turn the environment variable into an authenticated remote
+kill switch: changing a parent shell's environment cannot update an already
+running process, and there is no transactional remote stop or worker termination
+in this prototype.
 
 ## Results
 
 - 202 `RECORDED_ONLY_NO_EXECUTOR`: stored in SQLite; **not dispatched**.
 - 400 or 413: invalid input.
-- 401: unauthenticated, invalid signature or timestamp.
+- 401: unauthenticated, invalid signature or timestamp, or clock moved backwards.
 - 403: denied action, orchestrator or approval.
 - 409: already-seen nonce or task.
 - 423: Owner Kill Switch enabled (default).
