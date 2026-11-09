@@ -2,6 +2,8 @@
 
 **Enterprise-oriented HANTER → federated orchestrator → NCA automation interfaces for IMPERIAL Core.**
 
+<img src="https://raw.githubusercontent.com/oromaskevic23-cmd/oromaskevic23-cmd/main/assets/alexander-romaskevich-portrait-20261110.jpg" alt="Alexander Nikolaevich Romaskevich, Founder, Owner and CEO of IMPERIAL Core" width="160" />
+
 **Architect / Founder / Owner / CEO:** Alexander Nikolaevich Romaskevich (RomaskevicH).  
 **Status:** executable local intake prototype + importable safe n8n dry-run workflows; **not deployed, not connected to a production n8n instance, no real NCA worker or commercial execution**.
 

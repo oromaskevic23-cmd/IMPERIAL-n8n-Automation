@@ -1,6 +1,8 @@
 # Authorship and contribution provenance
 
 **Project:** IMPERIAL n8n Automation  
+<img src="https://raw.githubusercontent.com/oromaskevic23-cmd/oromaskevic23-cmd/main/assets/alexander-romaskevich-portrait-20261110.jpg" alt="Alexander Nikolaevich Romaskevich, Founder, Owner and CEO of IMPERIAL Core" width="160" />
+
 **Founding architect and project owner:** Alexander Nikolaevich Romaskevich  
 **Public signature:** RomaskevicH
 
