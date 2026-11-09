@@ -8,7 +8,7 @@
 | Unapproved task | distinct scoped HMAC approval | real owner approval service and protected key |
 | Unauthorized orchestrator | explicit allowlist | tenant scoping and least-privilege workers |
 | Privilege escalation | only `simulate:task`, recording only | policy engine and sandbox |
-| Emergency stop | kill switch on every call, fail closed | external control-plane enforcement |
+| Emergency stop | environment check and persistent, transactionally ordered local stop latch | authenticated external control-plane enforcement and worker termination |
 | Ledger tamper | SHA-256 local hash chain | external immutable evidence and anchoring |
 | Data exfiltration | no external calls / no secrets in templates | DLP, redaction, egress firewall |
 | Supply chain | pinned checkout SHA + read-only CI | trusted builds, pinned dependencies, SBOM |

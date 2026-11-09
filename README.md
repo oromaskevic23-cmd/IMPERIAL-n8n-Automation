@@ -11,7 +11,8 @@
 - Signed, short-lived Approval Gateway grant, bound to exact task, agent, orchestrator and capability.
 - Federated orchestrator allowlist; `ASTRA` is one orchestrator, not a central/global orchestrator.
 - Owner Kill Switch **engaged by default**, also checked on every request.
-- SQLite transactional queue recording, task deduplication, append-only chained audit events, verification helper.
+- SQLite transactional intent recording, task deduplication, hash-chained audit records and verification helper.
+- A persistent, transactionally ordered **local-only** stop latch and a 1,000-task recording cap; no automatic audit deletion or remote Owner control.
 - Single safe action: `simulate:task` (record intent only, **no execution**).
 - Two independently authored, importable n8n workflow JSON examples with no credentials or network calls.
 - Automated tests + schema checks via GitHub Actions.

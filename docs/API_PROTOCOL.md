@@ -33,16 +33,27 @@ The gateway checks timestamp freshness (±5 minutes) and approval expiry (within
 denies wall-clock rollback and uses elapsed monotonic time to prevent a frozen
 clock from extending the request's lifetime. The environment-based local stop
 setting, the route allowlist and both signatures are checked again after the
-lock. Nonce and task uniqueness are committed in the same transaction as the
-audit record.
+lock. The environment setting is also checked immediately before commit.
+Nonce and task uniqueness are committed in the same transaction as the audit
+record. Local admission is capped at 1,000 recorded tasks; the gateway denies
+additional requests rather than deleting audit evidence. Retention and recovery
+require a separately reviewed procedure.
 
 These checks do not turn the environment variable into an authenticated remote
 kill switch: changing a parent shell's environment cannot update an already
 running process, and there is no transactional remote stop or worker termination
 in this prototype. The prototype has no supported live key-rotation or route
 revocation API; direct changes to in-process variables and the environment are
-not serialized with an in-flight commit. Production revocation and stop require
-an authenticated, transactionally coordinated policy control plane.
+not serialized with an in-flight commit. A trusted local caller can invoke
+`engage_local_stop()`: its persistent one-way stop latch and audit event use
+the same SQLite write lock as admission. Requests ordered after a completed
+local stop are denied, including after a process restart. This method is not
+exposed by the HTTP server, does not authenticate the Owner, and does not stop
+remote or already-running workers. If persistence fails, the invoking Gateway
+instance refuses further requests, but other instances are not guaranteed to
+stop; the stop call raises and must not be reported as successful. Production
+revocation and stop still require an authenticated, transactionally coordinated
+policy control plane.
 
 ## Results
 
@@ -51,8 +62,9 @@ an authenticated, transactionally coordinated policy control plane.
 - 401: unauthenticated, invalid signature or timestamp, or clock moved backwards.
 - 403: denied action, orchestrator or approval.
 - 409: already-seen nonce or task.
-- 423: Owner Kill Switch enabled (default).
-- 503: storage unavailable.
+- 429: local recording capacity reached.
+- 423: environment stop or local stop latch enabled.
+- 503: storage unavailable or local stop state invalid.
 
 Each response includes `executed:false`. The local Audit Ledger hashes minimal metadata, not credentials.
 
